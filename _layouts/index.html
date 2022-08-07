@@ -103,7 +103,7 @@
                                     <a href="#contact">Contact</a>
                                 </li>
                                 <li>
-                                    <a href="#payment">Make Payment</a>
+                                    <a href="#" data-toggle="modal" data-target="#make-payment-modal">Make Payment</a>
                                 </li>
                             </ul>
                         </div><!-- /.navbar-collapse -->
@@ -475,9 +475,9 @@
                 </div>
             </div>
 
-            <div id="contact" class="mb10 mb40-sm"></div><!-- End .space -->
+            <div class="mb10 mb40-sm"></div><!-- End .space -->
 
-            <div class="bg-lightergray pt70 pb60">
+            <div id="contact"  class="bg-lightergray pt70 pb60">
                 <div class="container">
                     <header class="title-block text-center mb60">
                         <h2 class="title-underblock custom text-uppercase text-center mb20"><span>Contact Us</span></h2>
@@ -573,19 +573,6 @@
                     </div><!-- End .row -->
                 </div><!-- End .container -->
             </div><!-- End .bg-lighetgray -->
-            <div id="payment"class="callout custom no-border" style="margin-bottom: 0;">
-                <div class="mb5"></div><!-- space -->
-                <div class="container">
-                    <div class="callout-wrapper">
-                        <div class="callout-left">
-                            <h2 class="callout-title">Make A Payment</h2>
-                        </div><!-- End .callout-left -->
-                        <div class="callout-right">
-                            <div id="paypal-button-container"></div>
-                        </div><!-- End .callout-right -->
-                    </div><!-- End .callout-wrapper -->
-                </div><!-- End .container -->
-            </div><!-- End .callout -->
         </div><!-- End #content -->
 
         <footer id="footer" class="footer-custom" role="contentinfo">
@@ -627,6 +614,31 @@
     <a href="#top" id="scroll-top" title="Back to Top"><i class="fa fa-angle-up"></i></a>
     <!-- END -->
 
+    <div class="modal fade" id="make-payment-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title">Make Payment to LIV Recovery</h4>
+            </div>
+            <div class="modal-body">
+                <form id="payment-amount-form" onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="payment-amount-field" style="margin-right: 8px">Amount</label>
+                        <div class="input-group input-group-lg" style="margin-right: 8px">
+                            <span class="input-group-addon"><strong>$</strong></span>	
+                            <input class="form-control" type="number" id="payment-amount-field" placeholder="ex: 123.45" min=1 style="margin-bottom: 0;" required="required">
+                        </div>
+                    </div>
+                    <button type="submit" id="make-payment-button" class="btn btn-primary">Make Payment</button>
+                </form>
+                <div id="payment-amount" class="hidden" style="margin: 8px 0;"></div>
+                <div id="paypal-button-container" class="hidden" style="margin-top: 20px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     <!-- Smoothscroll -->
     <script src="js/smoothscroll.js"></script>
 
@@ -651,7 +663,7 @@
     <script src="js/contact.js"></script>
     <script src="js/main.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-155252067-1"></script>
-    <script src="https://www.paypal.com/sdk/js?client-id=AWo2Evwm8pL1TKdvq-jH8PBY3cz_83NWTwM4FhyUGE_BdKXKIpBJer4wRklIgdyFZFfJ6TIg8HrQb2hk"></script>
+    <script src="https://www.paypal.com/sdk/js?client-id=AWo2Evwm8pL1TKdvq-jH8PBY3cz_83NWTwM4FhyUGE_BdKXKIpBJer4wRklIgdyFZFfJ6TIg8HrQb2hk&currency=USD"></script>
 
     <script>
         window.dataLayer = window.dataLayer || [];
@@ -676,32 +688,69 @@
             });
         }());
 
-        paypal.Buttons({
-            style: {
-                shape: 'rect',
-                color: 'gold',
-                layout: 'vertical',
-                label: 'paypal',
-                
-            },
-            createOrder: function(data, actions) {
-                return actions.order.create({
-                    purchase_units: [{
-                        amount: {
-                            value: '0'
-                        }
-                    }]
-                });
-            },
-            onApprove: function(data, actions) {
-                return actions.order.capture().then(function(details) {
-                    alert('Transaction completed by ' + details.payer.name.given_name + '!');
-                });
+        const paymentAmountField = document.getElementById('payment-amount-field');
+        const paypalButtonContainer = document.getElementById("paypal-button-container");
+        const makePaymentButton = document.getElementById("make-payment-button");
+        const paymentAmountForm = document.getElementById('payment-amount-form');
+        const paymentAmount = document.getElementById('payment-amount');
+
+        function paymentAmountFieldKeyup() {
+            if (paymentAmountField.value != "" && !paymentAmountField.value.startsWith("0") && Number(paymentAmountField.value) > 0) {
+                paymentAmount.classList.remove("hidden");
+                paymentAmount.innerHTML = `<strong>Payment Amount: $${Number(paymentAmountField.value)}</strong>`;
+                makePaymentButton.classList.add('hidden');
+                paypalButtonContainer.classList.remove('hidden');
+            } else {
+                paymentAmount.innerHTML = "";
+                paymentAmount.classList.add("hidden");
+                makePaymentButton.classList.remove('hidden');
+                paypalButtonContainer.classList.add('hidden');
             }
-        }).render('#paypal-button-container');
+        }
+
+        paymentAmountForm.addEventListener('keyup', paymentAmountFieldKeyup);
+
+        const paypalButtonsComponent = paypal.Buttons({
+              style: {
+                color: "gold",
+                shape: "rect",
+                layout: "vertical"
+              },
+
+              createOrder: (data, actions) => {
+                  const createOrderPayload = {
+                      purchase_units: [
+                          {
+                              amount: {
+                                  value: paymentAmountField.value
+                              }
+                          }
+                      ]
+                  };
+
+                  return actions.order.create(createOrderPayload);
+              },
+
+              onApprove: (data, actions) => {
+                  const captureOrderHandler = (details) => {
+                      const payerName = details.payer.name.given_name;
+                      console.log('Transaction completed');
+                  };
+
+                  return actions.order.capture().then(captureOrderHandler);
+              },
+
+              onError: (err) => {
+                  console.error('An error prevented the buyer from checking out with PayPal');
+              }
+          });
+
+          paypalButtonsComponent
+              .render("#paypal-button-container")
+              .catch((err) => {
+                  console.error('PayPal Buttons failed to render');
+              });
     </script>
-
-
 </body>
 
 </html>
